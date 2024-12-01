@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Комната: <%= roomId %></title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1>Комната: <%= roomId %></h1>
+
+  <!-- Видео плеер -->
+  <div class="video-container">
+    <video id="video-player" width="100%" controls>
+      <source src="path-to-your-video.mp4" type="video/mp4">
+      Ваш браузер не поддерживает видео.
+    </video>
+    <div class="controls">
+      <button id="play-btn">Воспроизвести</button>
+      <button id="pause-btn">Пауза</button>
+      <button id="rewind-btn">Перемотка назад</button>
+      <button id="forward-btn">Перемотка вперед</button>
+    </div>
+  </div>
+
+  <!-- Чат -->
+  <div class="chat">
+    <input type="text" id="chat-input" placeholder="Напишите сообщение...">
+    <button id="send-message">Отправить</button>
+    <div id="messages"></div>
+  </div>
+
+  <!-- Добавление видео в очередь -->
+  <div class="queue">
+    <input type="text" id="video-url" placeholder="Вставьте ссылку на видео">
+    <button id="add-to-queue">Добавить в очередь</button>
+  </div>
+
+  <!-- Кнопка выхода -->
+  <div class="exit">
+    <button id="leave-room">Выйти из комнаты</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/script.js"></script>
+  <script>
+    const socket = io();
+    const roomId = "<%= roomId %>";
+
+    // Присоединение к комнате
+    const userId = Math.random().toString(36).substring(2, 15);
+    socket.emit('join-room', roomId, userId);
+
+    // Управление видео
+    const video = document.getElementById('video-player');
+    document.getElementById('play-btn').addEventListener('click', () => {
+      socket.emit('play-video', roomId);
+    });
+
+    document.getElementById('pause-btn').addEventListener('click', () => {
+      socket.emit('pause-video', roomId);
+    });
+
+    document.getElementById('rewind-btn').addEventListener('dblclick', () => {
+      socket.emit('seek-video', roomId, video.currentTime - 10); // Перемотка назад
+    });
+
+    document.getElementById('forward-btn').addEventListener('dblclick', () => {
+      socket.emit('seek-video', roomId, video.currentTime + 10); // Перемотка вперед
+    });
+
+    // Получение событий от других пользователей
+    socket.on('play-video', () => {
+      video.play();
+    });
+
+    socket.on('pause-video', () => {
+      video.pause();
+    });
+
+    socket.on('seek-video', (time) => {
+      video.currentTime = time;
+    });
+
+    // Чат
+    document.getElementById('send-message').addEventListener('click', () => {
+      const message = document.getElementById('chat-input').value;
+      socket.emit('chat-message', roomId, message);
+    });
+
+    socket.on('chat-message', (message) => {
+      const chatBox = document.createElement('div');
+      chatBox.textContent = message;
+      document.getElementById('messages').appendChild(chatBox);
+    });
+
+    // Добавление видео в очередь
+    document.getElementById('add-to-queue').addEventListener('click', () => {
+      const videoUrl = document.getElementById('video-url').value;
+      socket.emit('add-to-queue', roomId, videoUrl);
+    });
+
+    socket.on('add-to-queue', (videoUrl) => {
+      alert('Видео добавлено в очередь: ' + videoUrl);
+    });
+
+    // Выход из комнаты
+    document.getElementById('leave-room').addEventListener('click', () => {
+      socket.emit('leave-room', roomId, userId);
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>
